@@ -11,11 +11,9 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
   const { categorySummaries, kpis } = useFinance();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
-  // Filter only categories with spending
   const expensesWithSpending = categorySummaries.filter((c) => c.spent > 0);
   const totalExpense = kpis.totalExpenses;
 
-  // Compute angles for donut slices
   let cumulativeAngle = 0;
   const slices = expensesWithSpending.map((cat) => {
     const fraction = totalExpense > 0 ? cat.spent / totalExpense : 0;
@@ -37,14 +35,12 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
     ? slices.find((s) => s.category === hoveredCategory)
     : null;
 
-  // SVG Geometry Constants
-  const size = 260;
+  const size = 220;
   const center = size / 2;
-  const radius = 95;
-  const strokeWidth = 32;
+  const radius = 80;
+  const strokeWidth = 26;
   const circumference = 2 * Math.PI * radius;
 
-  // Helper to calculate SVG stroke-dasharray and stroke-dashoffset
   let cumulativeOffset = 0;
 
   const getCategoryIcon = (cat: string) => {
@@ -69,34 +65,33 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm transition-all flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+    <div className="bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs transition-all flex flex-col">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
           <PieChartIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">
-            খরচের পাই চার্ট (Expense Distribution)
+          <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+            খরচ বণ্টন
           </h2>
         </div>
-        <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
-          {expensesWithSpending.length} categories active
+        <span className="text-[11px] font-mono text-slate-400">
+          {expensesWithSpending.length} টি খাত
         </span>
       </div>
 
       {expensesWithSpending.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-3 text-2xl">
+        <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 mb-2 text-xl">
             📊
           </div>
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            এই মাসে এখনও কোনো খরচ এন্ট্রি করা হয়নি
+          <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+            এই মাসে কোনো খরচ এন্ট্রি নেই
           </p>
-          <p className="text-xs text-slate-400 mt-1">
-            উপরে ১-ক্লিক বাটন দিয়ে খরচ যোগ করুন চার্ট দেখতে
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            খরচ যোগ করলে চার্ট দেখা যাবে
           </p>
         </div>
       ) : (
-        <div className="mt-4 flex flex-col sm:flex-row items-center gap-6">
+        <div className="mt-3 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           
           {/* Donut Graphic */}
           <div className="relative shrink-0 flex items-center justify-center">
@@ -104,9 +99,8 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
               width={size}
               height={size}
               viewBox={`0 0 ${size} ${size}`}
-              className="transform -rotate-90 drop-shadow-sm"
+              className="transform -rotate-90 drop-shadow-xs max-w-full"
             >
-              {/* Background Track */}
               <circle
                 cx={center}
                 cy={center}
@@ -117,7 +111,6 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
                 className="text-slate-100 dark:text-slate-800/80"
               />
 
-              {/* Slices */}
               {slices.map((slice) => {
                 const strokeDasharray = `${(slice.fraction * circumference).toFixed(2)} ${circumference.toFixed(2)}`;
                 const strokeDashoffset = -cumulativeOffset;
@@ -145,76 +138,72 @@ export const ExpenseDonutChart: React.FC<ExpenseDonutChartProps> = ({ onSelectCa
               })}
             </svg>
 
-            {/* Donut Center Readout */}
+            {/* Center Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4">
               {activeSlice ? (
                 <>
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[130px] flex items-center gap-1">
-                    <span>{getCategoryIcon(activeSlice.category)}</span>
-                    <span>{activeSlice.category}</span>
+                  <span className="text-base">{getCategoryIcon(activeSlice.category)}</span>
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-[100px]">
+                    {activeSlice.category}
                   </span>
-                  <span className="text-lg font-black font-mono tabular-nums text-slate-900 dark:text-white">
+                  <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
                     {formatBDT(activeSlice.spent)}
                   </span>
-                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[10px] font-mono text-slate-400">
                     {formatPercent(activeSlice.percentageOfTotal)}
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                    Total Outflow
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                    মোট খরচ
                   </span>
-                  <span className="text-xl font-black font-mono tabular-nums text-slate-900 dark:text-white">
+                  <span className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white">
                     {formatBDT(totalExpense)}
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Hover for breakdown
                   </span>
                 </>
               )}
             </div>
           </div>
 
-          {/* Interactive Legend with Percentage breakdown */}
-          <div className="flex-1 w-full max-h-[240px] overflow-y-auto pr-1 space-y-1.5">
-            {slices.map((slice) => {
-              const isHovered = hoveredCategory === slice.category;
-              return (
-                <div
-                  key={slice.category}
-                  onMouseEnter={() => setHoveredCategory(slice.category)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                  onClick={() => onSelectCategory && onSelectCategory(slice.category)}
-                  className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
-                    isHovered
-                      ? 'bg-slate-100 dark:bg-slate-800 shadow-2xs'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-base shrink-0">{getCategoryIcon(slice.category)}</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {slice.category}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">
-                      {formatBDT(slice.spent)}
-                    </span>
-                    <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 w-12 text-right">
-                      {formatPercent(slice.percentageOfTotal)}
-                    </span>
-                  </div>
+          {/* Category List */}
+          <div className="flex-1 w-full space-y-1.5 max-h-56 overflow-y-auto pr-1">
+            {slices.map((s) => (
+              <div
+                key={s.category}
+                onMouseEnter={() => setHoveredCategory(s.category)}
+                onMouseLeave={() => setHoveredCategory(null)}
+                onClick={() => onSelectCategory && onSelectCategory(s.category)}
+                className={`flex items-center justify-between p-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                  hoveredCategory === s.category
+                    ? 'bg-slate-100 dark:bg-slate-800'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  <span className="text-sm shrink-0">{getCategoryIcon(s.category)}</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                    {s.category}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">
+                    {formatBDT(s.spent)}
+                  </span>
+                  <span className="font-mono text-slate-400 text-[10px] w-9 text-right">
+                    {formatPercent(s.percentageOfTotal)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
         </div>
       )}
-
     </div>
   );
 };

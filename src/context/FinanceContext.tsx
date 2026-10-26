@@ -169,14 +169,23 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return [];
   });
 
-  // Budgets State
+  // Budgets State - starts clean with no pre-filled numbers
   const [budgets, setBudgets] = useState<Record<string, MonthBudget>>(() => {
     if (typeof window === 'undefined') return INITIAL_BUDGET;
     const stored = localStorage.getItem(STORAGE_KEYS.BUDGETS);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          // Clear legacy hardcoded dummy budget 104500 so target starts completely blank as requested
+          if (parsed['2026-10']?.overallTarget === 104500) {
+            delete parsed['2026-10'];
+          }
+          if (parsed['2026-09']?.overallTarget === 104500) {
+            delete parsed['2026-09'];
+          }
+          return parsed;
+        }
       } catch (e) {
         console.error('Failed to parse stored budgets:', e);
       }
@@ -255,22 +264,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Active budget object for selected month (or active cycle)
   const currentBudget = useMemo<MonthBudget>(() => {
-    const targetMonth = currentMonth === 'all' ? '2026-10' : currentMonth;
+    const now = new Date();
+    const realCurrentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const targetMonth = currentMonth === 'all' ? realCurrentMonth : currentMonth;
     if (budgets[targetMonth]) {
       return budgets[targetMonth];
     }
-    // Fallback: derive initial defaults
-    const defaultCatBudgets: Record<string, number> = {};
-    let sumTarget = 0;
-    EXPENSE_CATEGORIES.forEach((cat) => {
-      defaultCatBudgets[cat.name] = cat.defaultBudget;
-      sumTarget += cat.defaultBudget;
-    });
-
+    // Clean blank target by default: no pre-filled values
     return {
       monthYear: targetMonth,
-      overallTarget: sumTarget,
-      categoryBudgets: defaultCatBudgets,
+      overallTarget: 0,
+      categoryBudgets: {},
     };
   }, [budgets, currentMonth]);
 
@@ -374,8 +378,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Merge with defined expense categories (including Baby Care & Milk, Bike & Fuel, etc.)
     const categories: CategorySummary[] = EXPENSE_CATEGORIES.map((cat) => {
       const spent = expenseMap[cat.name]?.spent || 0;
-      const budget = currentBudget.categoryBudgets[cat.name] ?? cat.defaultBudget;
-      const percentage = budget > 0 ? (spent / budget) * 100 : spent > 0 ? 100 : 0;
+      const budget = currentBudget.categoryBudgets[cat.name] ?? 0;
+      const percentage = budget > 0 ? (spent / budget) * 100 : 0;
       
       let status: 'normal' | 'warning' | 'alert' = 'normal';
       if (budget > 0) {
@@ -384,8 +388,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         } else if (percentage >= 80) {
           status = 'warning';
         }
-      } else if (spent > 0) {
-        status = 'alert';
       }
 
       return {
@@ -736,17 +738,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const resetCurrentMonthBudget = (targetMonthInput?: string) => {
     const targetMonth = targetMonthInput || (currentMonth === 'all' ? '2026-10' : currentMonth);
-    const defaultCatBudgets: Record<string, number> = {};
-    let sumTarget = 0;
-    EXPENSE_CATEGORIES.forEach((cat) => {
-      defaultCatBudgets[cat.name] = cat.defaultBudget;
-      sumTarget += cat.defaultBudget;
-    });
-
     const updated: MonthBudget = {
       monthYear: targetMonth,
-      overallTarget: sumTarget,
-      categoryBudgets: defaultCatBudgets,
+      overallTarget: 0,
+      categoryBudgets: {},
     };
 
     setBudgets((prev) => ({

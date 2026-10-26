@@ -37,66 +37,31 @@ const MainContent: React.FC = () => {
       />
 
       {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-10 space-y-4 sm:space-y-6">
         
         {/* View 1: Main Dashboard Overview */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-fade-in">
-            
-            {/* Zero State / Fresh Start Banner */}
-            {monthlyTransactions.length === 0 && (
-              <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50 via-teal-50/70 to-emerald-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
-                    ৳
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span>অ্যাপ প্রস্তুত! আপনার আসল আয় ও খরচের হিসাব শুরু করুন</span>
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                      সব ডামি ডাটা ক্লিয়ার করা হয়েছে। বাচ্চার দুধ, বাইক ফুয়েল বা মাসিক আয়ের এন্ট্রি দিয়ে শুরু করুন।
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openAddTxModal('income')}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-white dark:bg-emerald-950/80 hover:bg-emerald-50 border border-emerald-300 dark:border-emerald-800 rounded-xl transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <span>+ Add Income</span>
-                  </button>
-                  <button
-                    onClick={() => openAddTxModal('expense')}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition-colors shadow-sm cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>- Add Expense</span>
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="space-y-4 sm:space-y-6 animate-fade-in">
 
             {/* 1. Hero Net Balance & Financial Runway Card */}
             <HeroBalanceCard />
 
-            {/* 2. Quick 1-Click Fast Tracking Station (Baby Milk, Bike Octane, Groceries) */}
+            {/* 2. Quick Fast Tracking Station */}
             <QuickExpenseBar />
 
-            {/* 3. Real-time Bento KPI Metric Cards */}
+            {/* 3. Real-time KPI Metric Cards */}
             <KPICards />
 
-            {/* 4. Split Grid: Interactive Donut & Cash Flow vs Budget Limits & Warning Alerts */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* 4. Split Grid: Interactive Donut & Cash Flow vs Budget Limits */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
               
               {/* Left Column: Visual Analytics & Chart */}
-              <div className="lg:col-span-6 space-y-6">
+              <div className="lg:col-span-6 space-y-4 sm:space-y-6">
                 <ExpenseDonutChart onSelectCategory={handleSelectCategoryFromDashboard} />
                 <CashFlowComparison />
               </div>
 
-              {/* Right Column: Visual Budget Progress & Warning Thresholds */}
+              {/* Right Column: Visual Budget Progress */}
               <div className="lg:col-span-6">
                 <BudgetProgress
                   onNavigateToBudgetSettings={() => setActiveTab('budget')}
@@ -109,15 +74,15 @@ const MainContent: React.FC = () => {
             {/* 5. Month-by-Month Comparison Table */}
             <MonthlyOverviewCard />
 
-            {/* 6. Transactions Section Preview with quick link */}
-            <div className="space-y-3 pt-2">
+            {/* 6. Transactions Section Preview */}
+            <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    সাম্প্রতিক লেনদেনের তালিকা (Recent Records)
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                    সাম্প্রতিক লেনদেন
                   </h3>
-                  <span className="text-xs text-slate-400 font-mono">
-                    ({monthlyTransactions.length} items logged for {formatMonthYear(currentMonth)})
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    ({monthlyTransactions.length})
                   </span>
                 </div>
 
@@ -125,7 +90,7 @@ const MainContent: React.FC = () => {
                   onClick={() => setActiveTab('transactions')}
                   className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                 >
-                  <span>সম্পূর্ণ লেজার দেখুন (Full Ledger)</span>
+                  <span>সব লেনদেন</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>

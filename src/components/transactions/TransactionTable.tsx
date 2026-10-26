@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useFinance } from '../../context/FinanceContext';
-import { Transaction, TransactionType, PaymentMethod } from '../../types/finance';
+import { Transaction, PaymentMethod } from '../../types/finance';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../../utils/constants';
 import { formatBDT, formatDate, formatMonthYear } from '../../utils/formatters';
 import {
   Search,
-  Filter,
   Download,
   Plus,
   Pencil,
   Trash2,
   Repeat,
-  ArrowDownLeft,
-  ArrowUpRight,
   ArrowUpDown,
   CreditCard,
   X,
@@ -47,7 +44,6 @@ export const TransactionTable: React.FC = () => {
 
   const [txToDelete, setTxToDelete] = useState<Transaction | null>(null);
 
-  // Combine unique categories for filter dropdown
   const allCategoryNames = Array.from(
     new Set([
       ...EXPENSE_CATEGORIES.map((c) => c.name),
@@ -115,30 +111,30 @@ export const TransactionTable: React.FC = () => {
     switch (method) {
       case 'bKash/Nagad':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-pink-500/10 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-pink-500/10 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60">
             <Smartphone className="w-3 h-3" />
-            <span>bKash/Nagad</span>
+            <span>বিকাশ/নগদ</span>
           </span>
         );
       case 'Cash':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
             <Banknote className="w-3 h-3" />
-            <span>Cash (নগদ)</span>
+            <span>নগদ</span>
           </span>
         );
       case 'Card':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/10 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
             <CreditCard className="w-3 h-3" />
-            <span>Card</span>
+            <span>কার্ড</span>
           </span>
         );
       case 'Bank Transfer':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
             <Building className="w-3 h-3" />
-            <span>Bank Transfer</span>
+            <span>ব্যাংক</span>
           </span>
         );
       default:
@@ -147,69 +143,65 @@ export const TransactionTable: React.FC = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/80 rounded-2xl shadow-sm overflow-hidden transition-all">
+    <div className="bg-white dark:bg-slate-900/90 border border-slate-200/90 dark:border-slate-800/80 rounded-2xl shadow-xs overflow-hidden transition-all">
       
-      {/* Table Header & Controls Bar */}
-      <div className="p-5 border-b border-slate-200/80 dark:border-slate-800/80 space-y-4">
+      {/* Controls Bar */}
+      <div className="p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80 space-y-3">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>লেনদেনের খতিয়ান (Transaction Ledger)</span>
-              <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">
-                ({filteredTransactions.length} entries)
-              </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+              লেনদেন তালিকা
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Filtered timeframe: <strong className="text-slate-700 dark:text-slate-300 font-medium">{formatMonthYear(currentMonth)}</strong>
-            </p>
+            <span className="text-[11px] font-mono text-slate-400">
+              ({filteredTransactions.length})
+            </span>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
-              title="Export filtered records to CSV / Excel"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
+              <span>এক্সপোর্ট</span>
             </button>
 
             <button
               onClick={() => openAddTxModal()}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all whitespace-nowrap cursor-pointer shadow-xs"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>+ Add Entry</span>
+              <span>+ এন্ট্রি</span>
             </button>
           </div>
         </div>
 
-        {/* Filter Controls Toolbar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1">
+        {/* Filter Toolbar */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2 pt-0.5">
           
-          {/* Live Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
+          {/* Search */}
+          <div className="relative col-span-2 sm:col-span-1">
+            <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes, category, amount..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="খুঁজুন..."
+              className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
 
-          {/* Timeframe Selector (All Time vs Month) */}
+          {/* Timeframe */}
           <div>
             <select
               value={currentMonth}
               onChange={(e) => setCurrentMonth(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-semibold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
             >
               {availableMonths.map((m) => (
                 <option key={m} value={m} className="bg-white dark:bg-slate-900">
-                  {m === 'all' ? 'All Time (সব লেনদেন)' : formatMonthYear(m)}
+                  {m === 'all' ? 'সব সময়' : formatMonthYear(m)}
                 </option>
               ))}
             </select>
@@ -220,35 +212,35 @@ export const TransactionTable: React.FC = () => {
             <button
               type="button"
               onClick={() => setTypeFilter('all')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                 typeFilter === 'all'
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white font-semibold'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              All
+              সব
             </button>
             <button
               type="button"
               onClick={() => setTypeFilter('expense')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                 typeFilter === 'expense'
-                  ? 'bg-rose-600 text-white shadow-xs font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-rose-600 text-white font-semibold'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Expenses
+              খরচ
             </button>
             <button
               type="button"
               onClick={() => setTypeFilter('income')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                 typeFilter === 'income'
-                  ? 'bg-emerald-600 text-white shadow-xs font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-emerald-600 text-white font-semibold'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Income
+              আয়
             </button>
           </div>
 
@@ -257,12 +249,12 @@ export const TransactionTable: React.FC = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none cursor-pointer"
             >
-              <option value="all">All Categories (সব ক্যাটাগরি)</option>
+              <option value="all">সব ক্যাটাগরি</option>
               {allCategoryNames.map((cat) => (
                 <option key={cat} value={cat} className="bg-white dark:bg-slate-900">
-                  {getCategoryIcon(cat)} {cat}
+                  {cat}
                 </option>
               ))}
             </select>
@@ -273,9 +265,9 @@ export const TransactionTable: React.FC = () => {
             <select
               value={methodFilter}
               onChange={(e) => setMethodFilter(e.target.value as 'all' | PaymentMethod)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none cursor-pointer"
             >
-              <option value="all">All Channels (সব মাধ্যম)</option>
+              <option value="all">সব মাধ্যম</option>
               {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m} className="bg-white dark:bg-slate-900">
                   {m}
@@ -287,58 +279,58 @@ export const TransactionTable: React.FC = () => {
         </div>
 
         {isFilteringActive && (
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
-            <span>ফিল্টার সক্রিয়: প্রদর্শিত হচ্ছে মেলা ফলাফল</span>
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+            <span>ফিল্টার সক্রিয়</span>
             <button
               onClick={clearFilters}
               className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>রিসেট ফিল্টার (Reset Filters)</span>
+              <X className="w-3 h-3" />
+              <span>রিসেট</span>
             </button>
           </div>
         )}
 
       </div>
 
-      {/* Responsive Table Container */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+            <tr className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 text-[11px]">
               <th
                 onClick={() => toggleSort('date')}
-                className="py-3.5 px-4 font-semibold cursor-pointer hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
+                className="py-2.5 px-3 sm:px-4 font-semibold cursor-pointer hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
               >
-                <div className="flex items-center gap-1.5">
-                  <span>তারিখ (Date)</span>
+                <div className="flex items-center gap-1">
+                  <span>তারিখ</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
 
-              <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                ক্যাটাগরি ও প্রবাহ (Category)
+              <th className="py-2.5 px-3 sm:px-4 font-semibold whitespace-nowrap">
+                ক্যাটাগরি
               </th>
 
-              <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
-                পেমেন্ট চ্যানেল (Channel)
+              <th className="py-2.5 px-3 sm:px-4 font-semibold whitespace-nowrap hidden sm:table-cell">
+                মাধ্যম
               </th>
 
-              <th className="py-3.5 px-4 font-semibold">
-                নোট / বিবরণ (Notes)
+              <th className="py-2.5 px-3 sm:px-4 font-semibold hidden md:table-cell">
+                বিবরণ
               </th>
 
               <th
                 onClick={() => toggleSort('amount')}
-                className="py-3.5 px-4 font-semibold text-right cursor-pointer hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
+                className="py-2.5 px-3 sm:px-4 font-semibold text-right cursor-pointer hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
               >
-                <div className="flex items-center justify-end gap-1.5">
-                  <span>পরিমাণ (Amount ৳)</span>
+                <div className="flex items-center justify-end gap-1">
+                  <span>পরিমাণ</span>
                   <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 </div>
               </th>
 
-              <th className="py-3.5 px-4 font-semibold text-right whitespace-nowrap">
+              <th className="py-2.5 px-3 sm:px-4 font-semibold text-right whitespace-nowrap">
                 অ্যাকশন
               </th>
             </tr>
@@ -347,20 +339,14 @@ export const TransactionTable: React.FC = () => {
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
             {filteredTransactions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-14 text-center text-slate-500 dark:text-slate-400">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 mx-auto flex items-center justify-center text-2xl mb-2">
-                    📑
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">কোনো লেনদেন পাওয়া যায়নি</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    সার্চ কুয়েরি পরিবর্তন করুন বা নতুন এন্ট্রি যোগ করুন
-                  </p>
+                <td colSpan={6} className="py-10 text-center text-slate-500">
+                  <p className="text-xs sm:text-sm font-semibold">কোনো লেনদেন পাওয়া যায়নি</p>
                   <button
                     onClick={() => openAddTxModal()}
-                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs cursor-pointer"
+                    className="mt-2.5 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>নতুন এন্ট্রি যোগ করুন</span>
+                    <span>নতুন এন্ট্রি</span>
                   </button>
                 </td>
               </tr>
@@ -374,55 +360,41 @@ export const TransactionTable: React.FC = () => {
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
                   >
                     {/* Date */}
-                    <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap font-medium">
+                    <td className="py-3 px-3 sm:px-4 font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap text-xs">
                       {formatDate(tx.date)}
                     </td>
 
-                    {/* Category & Flow */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center text-base shrink-0 shadow-2xs ${
-                            isExpense
-                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40'
-                              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40'
-                          }`}
-                        >
-                          {getCategoryIcon(tx.category)}
-                        </div>
-
+                    {/* Category */}
+                    <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base shrink-0">{getCategoryIcon(tx.category)}</span>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {tx.category}
-                            </span>
-                            {tx.isRecurring && (
-                              <span className="text-[10px] text-slate-400 font-mono inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                <Repeat className="w-2.5 h-2.5" /> Recurring
-                              </span>
-                            )}
+                          <div className="font-semibold text-slate-900 dark:text-white text-xs">
+                            {tx.category}
                           </div>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {isExpense ? 'Debit (ব্যয়)' : 'Credit (আয়)'}
-                          </span>
+                          {tx.isRecurring && (
+                            <span className="text-[10px] text-slate-400 font-mono inline-flex items-center gap-0.5">
+                              <Repeat className="w-2.5 h-2.5" /> রিকারিং
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
 
-                    {/* Payment Channel */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    {/* Channel */}
+                    <td className="py-3 px-3 sm:px-4 whitespace-nowrap hidden sm:table-cell">
                       {renderPaymentBadge(tx.paymentMethod)}
                     </td>
 
                     {/* Notes */}
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300 max-w-[260px] truncate">
-                      {tx.notes ? tx.notes : <span className="text-slate-300 dark:text-slate-600">—</span>}
+                    <td className="py-3 px-3 sm:px-4 text-slate-600 dark:text-slate-300 max-w-[200px] truncate hidden md:table-cell text-xs">
+                      {tx.notes ? tx.notes : '—'}
                     </td>
 
                     {/* Amount */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                    <td className="py-3 px-3 sm:px-4 text-right whitespace-nowrap">
                       <span
-                        className={`font-mono font-extrabold text-sm sm:text-base tabular-nums ${
+                        className={`font-mono font-bold text-xs sm:text-sm tabular-nums ${
                           isExpense
                             ? 'text-rose-600 dark:text-rose-400'
                             : 'text-emerald-600 dark:text-emerald-400'
@@ -433,19 +405,19 @@ export const TransactionTable: React.FC = () => {
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="py-3 px-3 sm:px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEditTxModal(tx)}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                          title="Edit transaction"
+                          className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="সম্পাদনা"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setTxToDelete(tx)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                          title="Delete transaction"
+                          title="মুছে ফেলুন"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -460,31 +432,31 @@ export const TransactionTable: React.FC = () => {
         </table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       {txToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 w-full max-w-sm shadow-xl">
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
               লেনদেন ডিলিট নিশ্চিত করুন
             </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-              আপনি কি নিশ্চিত যে <strong className="text-slate-800 dark:text-slate-200">{txToDelete.category}</strong> এর{' '}
-              <strong className="font-mono text-slate-900 dark:text-white">{formatBDT(txToDelete.amount)}</strong> টাকার এন্ট্রি ডিলিট করতে চান?
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+              <strong className="text-slate-800 dark:text-slate-200">{txToDelete.category}</strong> এর{' '}
+              <strong className="font-mono text-slate-900 dark:text-white">{formatBDT(txToDelete.amount)}</strong> টাকার এন্ট্রি কি ডিলিট করতে চান?
             </p>
-            <div className="mt-5 flex items-center justify-end gap-2.5">
+            <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setTxToDelete(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
               >
-                বাতিল (Cancel)
+                বাতিল
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-xs cursor-pointer"
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl cursor-pointer"
               >
-                ডিলিট করুন (Delete)
+                ডিলিট করুন
               </button>
             </div>
           </div>
