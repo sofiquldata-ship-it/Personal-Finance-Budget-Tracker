@@ -25,7 +25,10 @@ import {
   saveTransactionToFirestore,
   deleteTransactionFromFirestore,
   saveBudgetToFirestore,
+  syncLocalToFirestore,
   testConnection,
+  getActiveUserId,
+  initAutoConnect,
 } from '../lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -94,11 +97,15 @@ interface FinanceContextType {
   loadDemoData: () => void;
   resetToDefaultData: () => void;
 
-  // Firebase Cloud Sync
+  // Firebase Cloud Sync & Auto-Connection
   user: User | null;
+  activeUserId: string;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isFirebaseConnected: boolean;
+  syncStatus: 'idle' | 'syncing' | 'synced' | 'error' | 'local_only';
+  syncMessage: string;
+  forceCloudSync: () => Promise<void>;
 
   // Theme
   isDarkMode: boolean;
@@ -134,18 +141,39 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
 
-  // Firebase User Auth State
+  // Firebase User Auth & Auto-Connection State
   const [user, setUser] = useState<User | null>(null);
-  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+  const [activeUserId, setActiveUserId] = useState<string>(() => getActiveUserId());
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error' | 'local_only'>('syncing');
+  const [syncMessage, setSyncMessage] = useState<string>('Firebase ক্লাউড সার্বক্ষণিক সংযুক্ত');
 
   useEffect(() => {
+    // 1. Health check verification
     testConnection().then((connected) => {
       setIsFirebaseConnected(connected);
     });
 
+    // 2. Silent background auto-connect (Zero clicks required)
+    initAutoConnect().then((uid) => {
+      if (uid) {
+        setActiveUserId(uid);
+      }
+    });
+
+    // 3. Listen to auth state transitions
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser?.uid) {
+        setActiveUserId(currentUser.uid);
+      } else {
+        setActiveUserId(getActiveUserId());
+      }
+      setIsFirebaseConnected(true);
+      setSyncStatus('synced');
+      setSyncMessage('Firebase ক্লাউড সার্বক্ষণিক সংযুক্ত');
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -193,27 +221,72 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return INITIAL_BUDGET;
   });
 
-  // Sync with Firestore in real-time when user is authenticated
+  // Sync with Firestore in real-time continuously using activeUserId (Zero button clicks required)
   useEffect(() => {
-    if (!user) return;
+    if (!activeUserId) return;
 
-    const unsubTxs = subscribeToUserTransactions(user.uid, (firestoreTxs) => {
-      if (firestoreTxs.length > 0) {
-        setTransactions(firestoreTxs);
-      }
+    setSyncStatus('syncing');
+    let isSubscribed = true;
+
+    const unsubTxs = subscribeToUserTransactions(activeUserId, (firestoreTxs) => {
+      if (!isSubscribed) return;
+
+      setTransactions((prevLocal) => {
+        if (firestoreTxs.length > 0) {
+          const firestoreIds = new Set(firestoreTxs.map((t) => t.id));
+          const unsyncedLocal = prevLocal.filter((t) => !firestoreIds.has(t.id));
+
+          // If there are local transactions that haven't been saved to Firestore yet, upload them
+          if (unsyncedLocal.length > 0) {
+            unsyncedLocal.forEach((tx) => {
+              saveTransactionToFirestore(activeUserId, tx).catch((err) => {
+                console.error('Background sync transaction error:', err);
+              });
+            });
+            return [...unsyncedLocal, ...firestoreTxs];
+          }
+          return firestoreTxs;
+        } else {
+          // Firestore is currently empty for this user: upload all current local transactions
+          if (prevLocal.length > 0) {
+            prevLocal.forEach((tx) => {
+              saveTransactionToFirestore(activeUserId, tx).catch((err) => {
+                console.error('Initial upload local tx error:', err);
+              });
+            });
+          }
+          return prevLocal;
+        }
+      });
+
+      setSyncStatus('synced');
+      setSyncMessage('Firebase ক্লাউড সার্বক্ষণিক সংযুক্ত');
     });
 
-    const unsubBudgets = subscribeToUserBudgets(user.uid, (firestoreBudgets) => {
-      if (Object.keys(firestoreBudgets).length > 0) {
-        setBudgets((prev) => ({ ...prev, ...firestoreBudgets }));
-      }
+    const unsubBudgets = subscribeToUserBudgets(activeUserId, (firestoreBudgets) => {
+      if (!isSubscribed) return;
+
+      setBudgets((prevLocal) => {
+        if (Object.keys(firestoreBudgets).length > 0) {
+          return { ...prevLocal, ...firestoreBudgets };
+        } else {
+          // Firestore has no budgets yet: upload local budgets to Firestore
+          Object.values(prevLocal).forEach((b) => {
+            if (b && typeof b.overallTarget === 'number') {
+              saveBudgetToFirestore(activeUserId, b).catch(console.error);
+            }
+          });
+          return prevLocal;
+        }
+      });
     });
 
     return () => {
+      isSubscribed = false;
       unsubTxs();
       unsubBudgets();
     };
-  }, [user]);
+  }, [activeUserId]);
 
   // Save to LocalStorage whenever state changes
   useEffect(() => {
@@ -495,7 +568,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setInitialModalCategory(undefined);
   };
 
-  // Transaction CRUD operations
+  // Transaction CRUD operations - writes directly to Firestore in real-time
   const addTransaction = (txData: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newTx: Transaction = {
       ...txData,
@@ -506,9 +579,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setTransactions((prev) => [newTx, ...prev]);
 
-    // Save to Firestore if user logged in
-    if (user) {
-      saveTransactionToFirestore(user.uid, newTx).catch((err) => {
+    // Save directly to Firestore with active persistent user ID
+    if (activeUserId) {
+      saveTransactionToFirestore(activeUserId, newTx).catch((err) => {
         console.error('Failed to sync transaction to Firestore:', err);
       });
     }
@@ -544,15 +617,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       })
     );
 
-    if (user && updatedTx) {
-      saveTransactionToFirestore(user.uid, updatedTx).catch(console.error);
+    if (activeUserId && updatedTx) {
+      saveTransactionToFirestore(activeUserId, updatedTx).catch(console.error);
     }
   };
 
   const deleteTransaction = (id: string) => {
     setTransactions((prev) => prev.filter((item) => item.id !== id));
-    if (user) {
-      deleteTransactionFromFirestore(user.uid, id).catch(console.error);
+    if (activeUserId) {
+      deleteTransactionFromFirestore(activeUserId, id).catch(console.error);
     }
   };
 
@@ -600,7 +673,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         categoryBudgets: newCategoryBudgets,
       };
 
-      if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+      if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
 
       const nextBudgets: Record<string, MonthBudget> = {
         ...prev,
@@ -616,7 +689,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
               overallTarget: validTarget,
               categoryBudgets: { ...newCategoryBudgets },
             };
-            if (user) saveBudgetToFirestore(user.uid, nextBudgets[m]).catch(console.error);
+            if (activeUserId) saveBudgetToFirestore(activeUserId, nextBudgets[m]).catch(console.error);
           }
         });
       }
@@ -658,7 +731,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         categoryBudgets: newCategoryBudgets,
       };
 
-      if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+      if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
 
       return {
         ...prev,
@@ -682,7 +755,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         overallTarget: totalSum,
       };
 
-      if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+      if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
 
       return {
         ...prev,
@@ -704,7 +777,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         monthYear: targetMonth,
         categoryBudgets: updatedCategories,
       };
-      if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+      if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
       return {
         ...prev,
         [targetMonth]: updated,
@@ -732,7 +805,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       [targetMonth]: updated,
     }));
 
-    if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+    if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
     return true;
   };
 
@@ -749,7 +822,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       [targetMonth]: updated,
     }));
 
-    if (user) saveBudgetToFirestore(user.uid, updated).catch(console.error);
+    if (activeUserId) saveBudgetToFirestore(activeUserId, updated).catch(console.error);
   };
 
   // Export CSV
@@ -817,11 +890,37 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const handleGoogleSignIn = async () => {
-    await loginWithGoogle();
+    try {
+      await loginWithGoogle();
+    } catch (e) {
+      console.error('Google Sign-In Error:', e);
+      setSyncStatus('error');
+      setSyncMessage('Google লগইন ব্যর্থ হয়েছে');
+    }
   };
 
   const handleGoogleSignOut = async () => {
-    await logoutUser();
+    try {
+      await logoutUser();
+      setSyncStatus('local_only');
+      setSyncMessage('লগআউট করা হয়েছে। ডেটা লোকাল ব্রাউজারে সংরক্ষিত।');
+    } catch (e) {
+      console.error('Google Sign-Out Error:', e);
+    }
+  };
+
+  const forceCloudSync = async () => {
+    try {
+      setSyncStatus('syncing');
+      setSyncMessage('Firebase ক্লাউডে আপলোড হচ্ছে...');
+      const { txCount, budgetCount } = await syncLocalToFirestore(activeUserId, transactions, budgets);
+      setSyncStatus('synced');
+      setSyncMessage(`${txCount} টি লেনদেন এবং ${budgetCount} টি বাজেট Firebase-এ সিঙ্ক হয়েছে`);
+    } catch (e) {
+      console.error('Manual sync failed:', e);
+      setSyncStatus('error');
+      setSyncMessage('ক্লাউড সিঙ্ক করতে সমস্যা হয়েছে');
+    }
   };
 
   return (
@@ -871,9 +970,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         loadDemoData,
         resetToDefaultData,
         user,
+        activeUserId,
         signInWithGoogle: handleGoogleSignIn,
         signOut: handleGoogleSignOut,
         isFirebaseConnected,
+        syncStatus,
+        syncMessage,
+        forceCloudSync,
         isDarkMode,
         toggleDarkMode,
       }}

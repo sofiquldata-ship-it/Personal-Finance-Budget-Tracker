@@ -10,9 +10,10 @@ import {
   Target,
   BarChart3,
   Database,
-  Calendar,
   ChevronLeft,
   ChevronRight,
+  Cloud,
+  LogOut,
 } from 'lucide-react';
 
 export type ActiveTab = 'dashboard' | 'transactions' | 'budget' | 'analytics' | 'data';
@@ -30,11 +31,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
     availableMonths,
     openAddTxModal,
     user,
-    signInWithGoogle,
     signOut,
     isDarkMode,
     toggleDarkMode,
-    isFirebaseConnected,
   } = useFinance();
 
   const currentIdx = availableMonths.indexOf(currentMonth);
@@ -179,29 +178,35 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
               {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Cloud Auth Status */}
+            {/* Cloud Auto-Connected Live Indicator */}
             {user ? (
               <button
                 onClick={signOut}
-                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer"
-                title="লগআউট"
+                className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-slate-200 dark:hover:bg-slate-700 border border-emerald-300/80 dark:border-emerald-700/80 cursor-pointer transition-colors"
+                title={`${user.email || 'User'} (লগআউট করতে ক্লিক করুন)`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="truncate max-w-[90px]">{user.displayName?.split(' ')[0] || 'User'}</span>
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="truncate max-w-[65px] sm:max-w-[100px]">
+                  {user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'User'}
+                </span>
+                <LogOut className="w-3 h-3 text-slate-400 hover:text-rose-500 ml-0.5" />
               </button>
             ) : (
-              <button
-                onClick={signInWithGoogle}
-                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 rounded-xl transition-colors cursor-pointer"
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/90 dark:border-emerald-700/80 rounded-xl shadow-2xs select-none"
+                title="Firebase ডেটাবেস সার্বক্ষণিক অটো-কানেক্টেড"
               >
-                <span>লগইন</span>
-              </button>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[11px] sm:text-xs">ক্লাউড লাইভ</span>
+              </div>
             )}
 
             {/* Desktop Add Transaction Button */}
             <button
               onClick={() => openAddTxModal()}
-              className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>এন্ট্রি</span>

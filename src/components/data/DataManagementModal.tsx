@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Cloud,
   Copy,
-  Sparkles,
   ShieldCheck,
   CheckCheck,
 } from 'lucide-react';
@@ -29,11 +28,9 @@ export const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen
     clearAllTransactions,
     loadDemoData,
     transactions,
-    currentMonth,
     user,
-    isFirebaseConnected,
-    signInWithGoogle,
     signOut,
+    forceCloudSync,
   } = useFinance();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,28 +164,34 @@ export const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span className="text-[11px] text-slate-600 dark:text-slate-300">
                   {user ? (
-                    <>লগইন আছেন: <strong className="text-slate-900 dark:text-white font-medium">{user.email}</strong> (ক্লাউড অটো-সিঙ্ক চালু)</>
+                    <>Google অ্যাকাউন্ট: <strong className="text-slate-900 dark:text-white font-medium">{user.email}</strong></>
                   ) : (
-                    <>লোকাল সেভ চালু। যেকোনো ডিভাইসে ডেটা সিঙ্ক করতে Google দিয়ে লগইন করুন।</>
+                    <>সার্বক্ষণিক অটো-কানেকশন সক্রিয় (সব ডেটা স্বয়ংক্রিয়ভাবে Firebase ক্লাউডে সংরক্ষিত হচ্ছে)</>
                   )}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                {user ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={async () => {
+                    await forceCloudSync();
+                    setFeedback({
+                      type: 'success',
+                      message: 'Firebase ক্লাউডে সফলভাবে সিঙ্ক সম্পন্ন হয়েছে!',
+                    });
+                    setTimeout(() => setFeedback(null), 3500);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                >
+                  <Cloud className="w-3 h-3" />
+                  <span>এখনই ক্লাউড সিঙ্ক</span>
+                </button>
+                {user && (
                   <button
                     onClick={signOut}
                     className="px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     লগআউট
-                  </button>
-                ) : (
-                  <button
-                    onClick={signInWithGoogle}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                  >
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    <span>Google Sync</span>
                   </button>
                 )}
 

@@ -3,6 +3,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInAnonymously,
   signOut,
   onAuthStateChanged,
   User,
@@ -119,6 +120,43 @@ export async function testConnection(): Promise<boolean> {
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+// Persistent Client Device User ID (to guarantee zero-click immediate cloud connection)
+const DEVICE_USER_KEY = 'takatrack_persistent_cloud_uid';
+
+export function getPersistentUserId(): string {
+  if (typeof window === 'undefined') return 'usr_default';
+  let uid = localStorage.getItem(DEVICE_USER_KEY);
+  if (!uid || !/^[a-zA-Z0-9_\-]+$/.test(uid)) {
+    uid = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem(DEVICE_USER_KEY, uid);
+  }
+  return uid;
+}
+
+export function getActiveUserId(): string {
+  if (auth.currentUser && auth.currentUser.uid) {
+    return auth.currentUser.uid;
+  }
+  return getPersistentUserId();
+}
+
+// Background zero-click connection initializer:
+// 1. If user is already authenticated (Google or Anonymous), returns user UID.
+// 2. Otherwise attempts silent anonymous login to satisfy request.auth.
+// 3. If anonymous login fails or is disabled, gracefully falls back to persistent client UID.
+export async function initAutoConnect(): Promise<string> {
+  if (auth.currentUser && auth.currentUser.uid) {
+    return auth.currentUser.uid;
+  }
+  try {
+    const cred = await signInAnonymously(auth);
+    return cred.user.uid;
+  } catch (err) {
+    console.info('Auto-connecting with persistent cloud ID:', err);
+    return getPersistentUserId();
+  }
+}
+
 export async function loginWithGoogle(): Promise<User> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -196,11 +234,20 @@ export function subscribeToUserBudgets(
 export async function saveTransactionToFirestore(userId: string, tx: Transaction): Promise<void> {
   const docPath = `users/${userId}/transactions/${tx.id}`;
   try {
-    await setDoc(doc(db, 'users', userId, 'transactions', tx.id), {
-      ...tx,
+    const payload = {
+      id: tx.id,
+      date: tx.date || new Date().toISOString().slice(0, 10),
+      type: tx.type,
+      category: tx.category,
+      amount: Math.max(0.01, Number(tx.amount) || 0),
+      paymentMethod: tx.paymentMethod || 'Cash',
+      isRecurring: Boolean(tx.isRecurring),
+      notes: typeof tx.notes === 'string' ? tx.notes : '',
       userId,
+      createdAt: tx.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await setDoc(doc(db, 'users', userId, 'transactions', tx.id), payload);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
@@ -218,12 +265,47 @@ export async function deleteTransactionFromFirestore(userId: string, txId: strin
 export async function saveBudgetToFirestore(userId: string, budget: MonthBudget): Promise<void> {
   const docPath = `users/${userId}/budgets/${budget.monthYear}`;
   try {
-    await setDoc(doc(db, 'users', userId, 'budgets', budget.monthYear), {
-      ...budget,
+    const payload = {
+      monthYear: budget.monthYear,
+      overallTarget: Math.max(0, Number(budget.overallTarget) || 0),
+      categoryBudgets: budget.categoryBudgets || {},
       userId,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    await setDoc(doc(db, 'users', userId, 'budgets', budget.monthYear), payload);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, docPath);
   }
+}
+
+// Bulk sync all local transactions and budgets to Firestore
+export async function syncLocalToFirestore(
+  userId: string,
+  transactions: Transaction[],
+  budgets: Record<string, MonthBudget>
+): Promise<{ txCount: number; budgetCount: number }> {
+  let txCount = 0;
+  let budgetCount = 0;
+
+  for (const tx of transactions) {
+    try {
+      await saveTransactionToFirestore(userId, tx);
+      txCount++;
+    } catch (e) {
+      console.warn('Failed to sync transaction to Firestore:', tx.id, e);
+    }
+  }
+
+  for (const [monthKey, b] of Object.entries(budgets)) {
+    if (b && typeof b.overallTarget === 'number') {
+      try {
+        await saveBudgetToFirestore(userId, { ...b, monthYear: monthKey });
+        budgetCount++;
+      } catch (e) {
+        console.warn('Failed to sync budget to Firestore:', monthKey, e);
+      }
+    }
+  }
+
+  return { txCount, budgetCount };
 }

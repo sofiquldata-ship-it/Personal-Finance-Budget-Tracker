@@ -14,12 +14,24 @@ import { DataManagementModal } from './components/data/DataManagementModal';
 import { QuickExpenseBar } from './components/dashboard/QuickExpenseBar';
 import { MonthlyOverviewCard } from './components/dashboard/MonthlyOverviewCard';
 import { formatMonthYear } from './utils/formatters';
-import { Plus, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Cloud, RefreshCw } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
-  const { currentMonth, setCategoryFilter, openAddTxModal, monthlyTransactions } = useFinance();
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const {
+    setCategoryFilter,
+    monthlyTransactions,
+    syncMessage,
+    forceCloudSync,
+  } = useFinance();
+
+  const handleManualSync = async () => {
+    setIsManualSyncing(true);
+    await forceCloudSync();
+    setTimeout(() => setIsManualSyncing(false), 800);
+  };
 
   const handleSelectCategoryFromDashboard = (catName: string) => {
     setCategoryFilter(catName);
@@ -38,6 +50,35 @@ const MainContent: React.FC = () => {
 
       {/* Main Workspace Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 md:pb-10 space-y-4 sm:space-y-6">
+        
+        {/* Firebase Live Database Auto-Connection Indicator (Zero Clicks Required) */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/40 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 shadow-2xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="font-bold flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ডাটাবেস সার্বক্ষণিক অটো-কানেক্টেড (Firebase Live)
+            </span>
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+            <span className="text-[11px] text-slate-600 dark:text-slate-300 hidden sm:inline">
+              প্রতিটি এন্ট্রি সরাসরি ক্লাউডে সংরক্ষিত হচ্ছে
+            </span>
+            {syncMessage && (
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md font-medium">
+                {syncMessage}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleManualSync}
+            disabled={isManualSyncing}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-700/60 transition-all cursor-pointer hover:shadow-2xs disabled:opacity-50 shrink-0"
+            title="Firebase ক্লাউড রিফ্রেশ ও সিঙ্ক"
+          >
+            <RefreshCw className={`w-3 h-3 ${isManualSyncing ? 'animate-spin' : ''}`} />
+            <span>{isManualSyncing ? 'সিঙ্ক হচ্ছে...' : 'লাইভ সিঙ্ক'}</span>
+          </button>
+        </div>
         
         {/* View 1: Main Dashboard Overview */}
         {activeTab === 'dashboard' && (
