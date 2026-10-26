@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health check endpoint for connection verification
+    match /_health_check/{docId} {
+      allow read: if true;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTransaction(data) {
+      return data.date is string && data.date.size() == 10
+        && data.type in ['income', 'expense']
+        && data.category is string && data.category.size() <= 80
+        && data.amount is number && data.amount > 0
+        && data.paymentMethod in ['Cash', 'Card', 'bKash/Nagad', 'Bank Transfer']
+        && (!('isRecurring' in data) || data.isRecurring is bool)
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidBudget(data) {
+      return data.monthYear is string && data.monthYear.size() == 7
+        && data.overallTarget is number && data.overallTarget >= 0
+        && (!('categoryBudgets' in data) || data.categoryBudgets is map);
+    }
+
+    // User Transactions Subcollection
+    match /users/{userId}/transactions/{transactionId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && isValidId(transactionId)
+        && isValidTransaction(request.resource.data);
+      allow update: if isOwner(userId)
+        && isValidId(transactionId)
+        && isValidTransaction(request.resource.data);
+      allow delete: if isOwner(userId) && isValidId(transactionId);
+    }
+
+    // User Monthly Budgets Subcollection
+    match /users/{userId}/budgets/{budgetId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && isValidId(budgetId)
+        && isValidBudget(request.resource.data);
+      allow update: if isOwner(userId)
+        && isValidId(budgetId)
+        && isValidBudget(request.resource.data);
+      allow delete: if isOwner(userId) && isValidId(budgetId);
+    }
+
+    // User profile documents (optional preferences/sync metadata)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

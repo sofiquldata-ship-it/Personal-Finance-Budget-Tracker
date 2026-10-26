@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial income or expense record in Bangladeshi Taka (৳)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "category": { "type": "string", "maxLength": 80 },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["Cash", "Card", "bKash/Nagad", "Bank Transfer"] },
+        "isRecurring": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["date", "type", "category", "amount", "paymentMethod"]
+    },
+    "MonthBudget": {
+      "title": "MonthBudget",
+      "description": "Monthly overall budget ceiling and category-specific targets in BDT",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "monthYear": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" },
+        "overallTarget": { "type": "number" },
+        "categoryBudgets": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["monthYear", "overallTarget"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "User specific income and expense ledger entries"
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+      "schema": "MonthBudget",
+      "description": "User specific monthly budget targets and category limits"
+    }
+  }
+}
